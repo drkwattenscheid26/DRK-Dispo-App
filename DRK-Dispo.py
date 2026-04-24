@@ -5,25 +5,38 @@ import json
 from google.oauth2.service_account import Credentials
 
 # --- 1. GLOBALE DATENBANK-VERBINDUNG ---
+# Diese Variablen stehen ganz links (0 Leerzeichen)
 scope = ["https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/drive"]
 
 def get_gspread_client():
-    # Wir prüfen zuerst, ob wir in der Streamlit Cloud sind
+    """Diese Funktion regelt die Anmeldung bei Google."""
+    # 4 Leerzeichen Einrückung ab hier
     if "gcp_service_account" in st.secrets:
         try:
-            # 1. Daten laden
+            # 8 Leerzeichen Einrückung ab hier
             creds_info = dict(st.secrets["gcp_service_account"])
             
-            # 2. Key reparieren
             if "private_key" in creds_info:
                 creds_info["private_key"] = creds_info["private_key"].replace("\\n", "\n")
             
-            # 3. Credentials erstellen
             creds = Credentials.from_service_account_info(creds_info, scopes=scope)
             return gspread.authorize(creds)
         except Exception as e:
             st.error(f"Fehler bei Cloud-Verbindung: {e}")
             return None
+
+    # Dieser Block steht wieder auf der Ebene des 'if' (4 Leerzeichen)
+    try:
+        creds = Credentials.from_service_account_file("credentials.json", scopes=scope)
+        return gspread.authorize(creds)
+    except Exception as e:
+        st.warning("Lokale credentials.json nicht gefunden.")
+        return None
+
+# Dieser Befehl steht wieder ganz links am Rand (0 Leerzeichen)
+client = get_gspread_client()
+
+# --- AB HIER DEINE WEITERE LOGIK (z.B. sheet = client.open(...)) ---
 
     # Falls wir nicht in der Cloud sind, versuchen wir es lokal
     try:
