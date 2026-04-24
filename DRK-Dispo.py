@@ -9,22 +9,15 @@ scope = ["https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis
 # 2. Verbindung aufbauen
 client = None
 
-if "gcp_service_account" in st.secrets:
-    try:
+# Ersetze die Zeile 12 (und folgende) durch das hier:
+try:
+    if "gcp_service_account" in st.secrets:
         info = dict(st.secrets["gcp_service_account"])
-        
-        # WICHTIG: Hier fixen wir das PEM-Format
-        if "private_key" in info:
-            # Wir säubern den Key von eventuellen Fehl-Formatierungen
-            cleaned_key = info["private_key"].replace("\\n", "\n")
-            if not cleaned_key.endswith("\n"):
-                cleaned_key += "\n"
-            info["private_key"] = cleaned_key
-            
-        creds = Credentials.from_service_account_info(info, scopes=scope)
-        client = gspread.authorize(creds)
-    except Exception as e:
-        st.error(f"Verbindungsfehler (PEM/Key): {e}")
+        # ... restlicher Code wie vorhin ...
+    else:
+        st.error("Das Secret 'gcp_service_account' wurde nicht in den Streamlit Settings gefunden!")
+except Exception as e:
+    st.error(f"Kritischer Fehler beim Lesen der Secrets: {e}")
 
 # 3. Tabelle laden
 if client:
