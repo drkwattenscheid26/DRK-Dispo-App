@@ -1,17 +1,38 @@
 import streamlit as st
 import gspread
-from oauth2client.service_account import ServiceAccountCredentials
 import pandas as pd
-from datetime import datetime, date, timedelta
-import urllib.parse
-
+import json
+from oauth2client.service_account import ServiceAccountCredentials
 
 # --- 1. GLOBALE DATENBANK-VERBINDUNG ---
-# Das muss ganz oben stehen, damit JEDER Teil der App darauf zugreifen kann.
+scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
+
 def get_gspread_client():
-    scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
-    creds = ServiceAccountCredentials.from_json_keyfile_name("credentials.json", scope)
-    return gspread.authorize(creds)
+    # Versuch für Streamlit Cloud
+    if "gcp_service_account" in st.secrets:
+        try:
+            # Wir laden die Secrets als Dictionary
+            creds_info = dict(st.secrets["gcp_service_account"])
+            
+            # REPARATUR: Falls Backslashes als Text im Key stehen, 
+            # machen wir echte Zeilenumbrüche daraus.
+            if "private_key" in creds_info:
+                creds_info["private_key"] = creds_info["private_key"].replace("\\n", "\n")
+            
+            creds = ServiceAccountCredentials.from_json_dict(creds_info, scope)
+            return gspread.authorize(creds)
+        except Exception as e:
+            st.error(f"Cloud-Verbindungsfehler: {e}")
+
+    # Versuch für lokal (PC)
+    try:
+        creds = ServiceAccountCredentials.from_json_keyfile_name("credentials.json", scope)
+        return gspread.authorize(creds)
+    except Exception as e:
+        st.warning("Lokale credentials.json nicht gefunden. Falls du in der Cloud bist, ignoriere das.")
+        return None
+
+# Verbindung initialisieren
 client = get_gspread_client()
 
 # Verbindung sofort beim Start aufbauen
