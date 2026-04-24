@@ -49,7 +49,7 @@ else:
     # Falls wir nicht in der Cloud sind, versuchen wir es lokal
     try:
         creds = Credentials.from_service_account_file("credentials.json", scopes=scope)
-         return gspread.authorize(creds)
+          return gspread.authorize(creds)
     except Exception as e:
         st.warning("Lokale credentials.json nicht gefunden.")
         return None
