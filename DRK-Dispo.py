@@ -1,24 +1,28 @@
-import streamlit as st
-import gspread
-from google.oauth2.service_account import Credentials
-
 def get_gspread_client():
     scope = ["https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/drive"]
     
+    # Der folgende Block muss genau 4 Leerzeichen eingerückt sein
     if "gcp_service_account" in st.secrets:
         try:
-            # Wir laden die Secrets
             creds_info = dict(st.secrets["gcp_service_account"])
-            
-            # WICHTIGE REPARATUR: Ersetzt die Text-Backslashes durch echte Umbrüche
             if "private_key" in creds_info:
                 creds_info["private_key"] = creds_info["private_key"].replace("\\n", "\n")
             
-            # Neue Methode der moderneren Library
             creds = Credentials.from_service_account_info(creds_info, scopes=scope)
             return gspread.authorize(creds)
         except Exception as e:
             st.error(f"Fehler bei Cloud-Verbindung: {e}")
+
+    # Dieser Block muss auf der gleichen Höhe wie das "if" stehen
+    try:
+        creds = Credentials.from_service_account_file("credentials.json", scopes=scope)
+        return gspread.authorize(creds)
+    except Exception as e:
+        st.warning(f"Lokale Verbindung nicht möglich: {e}")
+        return None
+
+# Dieser Befehl muss ganz links am Rand stehen
+client = get_gspread_client()
 
     # Lokal am PC
     try:
