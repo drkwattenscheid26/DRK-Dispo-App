@@ -14,11 +14,11 @@ if "gcp_service_account" in st.secrets:
         # Daten aus Secrets laden
         info = dict(st.secrets["gcp_service_account"])
         
-        # Den Schlüssel reparieren (wichtig für die Signatur!)
+        # Den Schlüssel reparieren
         if "private_key" in info:
             info["private_key"] = info["private_key"].replace("\\n", "\n")
         
-        # Authentifizierung bei Google
+        # Authentifizierung
         creds = Credentials.from_service_account_info(info, scopes=scope)
         client = gspread.authorize(creds)
     except Exception as e:
@@ -27,7 +27,7 @@ if "gcp_service_account" in st.secrets:
 # 3. Wenn die Verbindung steht, Tabelle laden
 if client:
     try:
-        # --- BITTE DEN NAMEN DEINER TABELLE HIER EINTRAGEN ---
+        # HIER DEN NAMEN DEINER TABELLE EINTRAGEN
         spreadsheet = client.open("DEIN_TABELLEN_NAME") 
         sheet = spreadsheet.get_worksheet(0)
         data = sheet.get_all_records()
@@ -40,14 +40,6 @@ if client:
         st.error(f"Fehler beim Laden der Tabelle: {e}")
 else:
     st.error("Konnte keine Verbindung zu Google herstellen. Bitte die Streamlit Secrets prüfen!")
-    
-    # Versuch B: Lokal am PC
-    try:
-        creds = Credentials.from_service_account_file("credentials.json", scopes=scope)
-        return gspread.authorize(creds)
-    except Exception:
-        return None
-
 # 3. Den Client erstellen
 client = get_gspread_client()
 
