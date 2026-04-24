@@ -3,43 +3,45 @@ import gspread
 import pandas as pd
 from google.oauth2.service_account import Credentials
 
-# 1. Verbindungseinstellungen
+# 1. Setup
 scope = ["https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/drive"]
 
-# 2. Verbindung herstellen
+# 2. Verbindung aufbauen
 client = None
 
 if "gcp_service_account" in st.secrets:
     try:
-        # Daten aus Secrets laden
         info = dict(st.secrets["gcp_service_account"])
         
-        # Den Schlüssel reparieren
+        # WICHTIG: Hier fixen wir das PEM-Format
         if "private_key" in info:
-            info["private_key"] = info["private_key"].replace("\\n", "\n")
-        
-        # Authentifizierung
+            # Wir säubern den Key von eventuellen Fehl-Formatierungen
+            cleaned_key = info["private_key"].replace("\\n", "\n")
+            if not cleaned_key.endswith("\n"):
+                cleaned_key += "\n"
+            info["private_key"] = cleaned_key
+            
         creds = Credentials.from_service_account_info(info, scopes=scope)
         client = gspread.authorize(creds)
     except Exception as e:
-        st.error(f"Verbindungsfehler: {e}")
+        st.error(f"Verbindungsfehler (PEM/Key): {e}")
 
-# 3. Wenn die Verbindung steht, Tabelle laden
+# 3. Tabelle laden
 if client:
     try:
-        # HIER DEN NAMEN DEINER TABELLE EINTRAGEN
-        spreadsheet = client.open("DRK-Dispo") 
+        # Ersetze das hier durch deinen echten Tabellennamen!
+        spreadsheet = client.open("DEIN_TABELLEN_NAME") 
         sheet = spreadsheet.get_worksheet(0)
         data = sheet.get_all_records()
         df = pd.DataFrame(data)
         
-        st.success("Daten erfolgreich geladen!")
+        st.success("Verbindung steht! Daten geladen.")
         st.dataframe(df)
-        
     except Exception as e:
-        st.error(f"Fehler beim Laden der Tabelle: {e}")
+        st.error(f"Fehler beim Zugriff auf die Tabelle: {e}")
+        st.info("Hinweis: Hast du die E-Mail des Service-Accounts in Google Sheets als 'Editor' freigegeben?")
 else:
-    st.error("Konnte keine Verbindung zu Google herstellen. Bitte die Streamlit Secrets prüfen!")
+    st.warning("Keine aktive Verbindung zu Google Sheets.")
 # Verbindung initialisieren
 client = get_gspread_client()
 
