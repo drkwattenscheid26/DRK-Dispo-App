@@ -61,7 +61,7 @@ client = get_gspread_client()
 try:
         creds = Credentials.from_service_account_file("credentials.json", scopes=scope)
         return gspread.authorize(creds)
-    except Exception as e:
+except Exception as e:
         st.warning(f"Lokale Verbindung nicht möglich: {e}")
         return None
 
