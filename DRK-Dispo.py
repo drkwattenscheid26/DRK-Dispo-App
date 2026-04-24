@@ -28,7 +28,7 @@ if "gcp_service_account" in st.secrets:
 if client:
     try:
         # HIER DEN NAMEN DEINER TABELLE EINTRAGEN
-        spreadsheet = client.open("DEIN_TABELLEN_NAME") 
+        spreadsheet = client.open("DRK-Dispo") 
         sheet = spreadsheet.get_worksheet(0)
         data = sheet.get_all_records()
         df = pd.DataFrame(data)
@@ -40,40 +40,6 @@ if client:
         st.error(f"Fehler beim Laden der Tabelle: {e}")
 else:
     st.error("Konnte keine Verbindung zu Google herstellen. Bitte die Streamlit Secrets prüfen!")
-# 3. Den Client erstellen
-client = get_gspread_client()
-
-# --- LOGIK ---
-if client:
-    try:
-        # Ersetze "DEIN_TABELLEN_NAME" durch den echten Namen deiner Google Tabelle!
-        sheet = client.open("DRK-Dispo").sheet1
-        data = sheet.get_all_records()
-        df = pd.DataFrame(data)
-        st.write("Daten erfolgreich geladen!", df)
-    except Exception as e:
-        st.error(f"Fehler beim Öffnen der Tabelle: {e}")
-else:
-    st.error("Es konnte keine Verbindung zu Google Sheets hergestellt werden.")
-
-    # Lokal am PC
-try:
-        creds = Credentials.from_service_account_file("credentials.json", scopes=scope)
-        return gspread.authorize(creds)
-except Exception as e:
-        st.warning(f"Lokale Verbindung nicht möglich: {e}")
-        return None
-
-client = get_gspread_client()
-
-    # Versuch für lokal (PC)
-try:
-        creds = ServiceAccountCredentials.from_json_keyfile_name("credentials.json", scope)
-        return gspread.authorize(creds)
-except Exception as e:
-        st.warning("Lokale credentials.json nicht gefunden. Falls du in der Cloud bist, ignoriere das.")
-        return None
-
 # Verbindung initialisieren
 client = get_gspread_client()
 
