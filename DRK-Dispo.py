@@ -36,7 +36,7 @@ client = get_gspread_client()
 if client:
     try:
         # Ersetze "DEIN_TABELLEN_NAME" durch den echten Namen deiner Google Tabelle!
-        sheet = client.open("DEIN_TABELLEN_NAME").sheet1
+        sheet = client.open("DRK-Dispo").sheet1
         data = sheet.get_all_records()
         df = pd.DataFrame(data)
         st.write("Daten erfolgreich geladen!", df)
