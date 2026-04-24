@@ -30,7 +30,7 @@ if "gcp_service_account" in st.secrets:
 if client:
     try:
         # Ersetze das hier durch deinen echten Tabellennamen!
-        spreadsheet = client.open("DEIN_TABELLEN_NAME") 
+        spreadsheet = client.open("DRK-Dispo") 
         sheet = spreadsheet.get_worksheet(0)
         data = sheet.get_all_records()
         df = pd.DataFrame(data)
