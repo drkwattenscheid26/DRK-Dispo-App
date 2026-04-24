@@ -15,8 +15,8 @@ def get_gspread_client():
             creds_info = dict(st.secrets["gcp_service_account"])
             if "private_key" in creds_info:
                 creds_info["private_key"] = creds_info["private_key"].replace("\\n", "\n")
-            creds = Credentials.from_service_account_info(creds_info, scopes=scope)
-            return gspread.authorize(creds)
+        creds = Credentials.from_service_account_info(creds_info, scopes=scope)
+        return gspread.authorize(creds)
         except Exception as e:
             st.error(f"Cloud-Fehler: {e}")
     
