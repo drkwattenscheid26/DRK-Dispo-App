@@ -7,7 +7,7 @@ from google.oauth2.service_account import Credentials
 # 1. Scope definieren
 scope = ["https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/drive"]
 
-# 2. Die Verbindungs-Funktion (Absolut sauber eingerückt)
+# 2. Die Verbindungs-Funktion
 def get_gspread_client():
     # Versuch A: Streamlit Cloud Secrets
     if "gcp_service_account" in st.secrets:
@@ -15,8 +15,10 @@ def get_gspread_client():
             creds_info = dict(st.secrets["gcp_service_account"])
             if "private_key" in creds_info:
                 creds_info["private_key"] = creds_info["private_key"].replace("\\n", "\n")
-         creds = Credentials.from_service_account_info(creds_info, scopes=scope)
-         return gspread.authorize(creds)
+            
+            # Diese beiden Zeilen müssen EXAKT unter dem 'if' von oben stehen (12 Leerzeichen)
+            creds = Credentials.from_service_account_info(creds_info, scopes=scope)
+            return gspread.authorize(creds)
         except Exception as e:
             st.error(f"Cloud-Fehler: {e}")
     
@@ -30,8 +32,7 @@ def get_gspread_client():
 # 3. Den Client erstellen
 client = get_gspread_client()
 
-# --- AB HIER DEINE LOGIK ---
-# Wenn du z.B. eine Tabelle öffnen willst:
+# --- LOGIK ---
 if client:
     try:
         # Ersetze "DEIN_TABELLEN_NAME" durch den echten Namen deiner Google Tabelle!
@@ -43,20 +44,6 @@ if client:
         st.error(f"Fehler beim Öffnen der Tabelle: {e}")
 else:
     st.error("Es konnte keine Verbindung zu Google Sheets hergestellt werden.")
-
-# --- AB HIER DEINE WEITERE LOGIK (z.B. sheet = client.open(...)) ---
-
-    # Falls wir nicht in der Cloud sind, versuchen wir es lokal
-    # Falls wir nicht in der Cloud sind, versuchen wir es lokal
-    try:
-        creds = Credentials.from_service_account_file("credentials.json", scopes=scope)
-        return gspread.authorize(creds)
-    except Exception as e:
-        st.warning("Lokale credentials.json nicht gefunden.")
-        return None
-
-# Initialisierung des Clients (Ganz links am Rand!)
-client = get_gspread_client()
 
     # Lokal am PC
 try:
