@@ -68,10 +68,10 @@ except Exception as e:
 client = get_gspread_client()
 
     # Versuch für lokal (PC)
-    try:
+try:
         creds = ServiceAccountCredentials.from_json_keyfile_name("credentials.json", scope)
         return gspread.authorize(creds)
-    except Exception as e:
+except Exception as e:
         st.warning("Lokale credentials.json nicht gefunden. Falls du in der Cloud bist, ignoriere das.")
         return None
 
