@@ -1,26 +1,40 @@
 import streamlit as st
 import gspread
 import pandas as pd
-import json
 from google.oauth2.service_account import Credentials
 
-# 1. Scope definieren
+# 1. Verbindungseinstellungen
 scope = ["https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/drive"]
 
-# 2. Die Verbindungs-Funktion
-def get_gspread_client():
-    # Versuch A: Streamlit Cloud Secrets
-    if "gcp_service_account" in st.secrets:
-        try:
-            creds_info = dict(st.secrets["gcp_service_account"])
-            if "private_key" in creds_info:
-                creds_info["private_key"] = creds_info["private_key"].replace("\\n", "\n")
-            
-            # Diese beiden Zeilen müssen EXAKT unter dem 'if' von oben stehen (12 Leerzeichen)
-            creds = Credentials.from_service_account_info(creds_info, scopes=scope)
-            return gspread.authorize(creds)
-        except Exception as e:
-            st.error(f"Cloud-Fehler: {e}")
+# 2. Direktverbindung ohne Umwege
+client = None
+
+if "gcp_service_account" in st.secrets:
+    try:
+        creds_info = dict(st.secrets["gcp_service_account"])
+        if "private_key" in creds_info:
+            creds_info["private_key"] = creds_info["private_key"].replace("\\n", "\n")
+        
+        creds = Credentials.from_service_account_info(creds_info, scopes=scope)
+        client = gspread.authorize(creds)
+    except Exception as e:
+        st.error(f"Verbindungsfehler: {e}")
+
+# 3. Wenn die Verbindung steht, Tabelle laden
+if client:
+    try:
+        # Ersetze "DEIN_TABELLEN_NAME" durch den echten Namen deiner Google Tabelle!
+        spreadsheet = client.open("DEIN_TABELLEN_NAME")
+        sheet = spreadsheet.get_worksheet(0)
+        data = sheet.get_all_records()
+        df = pd.DataFrame(data)
+        
+        st.success("Daten erfolgreich geladen!")
+        st.dataframe(df)
+    except Exception as e:
+        st.error(f"Fehler beim Laden der Tabelle: {e}")
+else:
+    st.error("Konnte keine Verbindung zu Google herstellen. Bitte die Streamlit Secrets prüfen!")
     
     # Versuch B: Lokal am PC
     try:
