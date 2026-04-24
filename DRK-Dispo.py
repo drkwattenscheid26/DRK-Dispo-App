@@ -4,37 +4,45 @@ import pandas as pd
 import json
 from google.oauth2.service_account import Credentials
 
-# --- 1. GLOBALE DATENBANK-VERBINDUNG ---
-# Diese Variablen stehen ganz links (0 Leerzeichen)
+# 1. Scope definieren
 scope = ["https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/drive"]
 
+# 2. Die Verbindungs-Funktion (Absolut sauber eingerückt)
 def get_gspread_client():
-    """Diese Funktion regelt die Anmeldung bei Google."""
-    # 4 Leerzeichen Einrückung ab hier
+    # Versuch A: Streamlit Cloud Secrets
     if "gcp_service_account" in st.secrets:
         try:
-            # 8 Leerzeichen Einrückung ab hier
             creds_info = dict(st.secrets["gcp_service_account"])
-            
             if "private_key" in creds_info:
                 creds_info["private_key"] = creds_info["private_key"].replace("\\n", "\n")
-            
             creds = Credentials.from_service_account_info(creds_info, scopes=scope)
             return gspread.authorize(creds)
         except Exception as e:
-            st.error(f"Fehler bei Cloud-Verbindung: {e}")
-            return None
-
-    # Dieser Block steht wieder auf der Ebene des 'if' (4 Leerzeichen)
+            st.error(f"Cloud-Fehler: {e}")
+    
+    # Versuch B: Lokal am PC
     try:
         creds = Credentials.from_service_account_file("credentials.json", scopes=scope)
         return gspread.authorize(creds)
-    except Exception as e:
-        st.warning("Lokale credentials.json nicht gefunden.")
+    except Exception:
         return None
 
-# Dieser Befehl steht wieder ganz links am Rand (0 Leerzeichen)
+# 3. Den Client erstellen
 client = get_gspread_client()
+
+# --- AB HIER DEINE LOGIK ---
+# Wenn du z.B. eine Tabelle öffnen willst:
+if client:
+    try:
+        # Ersetze "DEIN_TABELLEN_NAME" durch den echten Namen deiner Google Tabelle!
+        sheet = client.open("DEIN_TABELLEN_NAME").sheet1
+        data = sheet.get_all_records()
+        df = pd.DataFrame(data)
+        st.write("Daten erfolgreich geladen!", df)
+    except Exception as e:
+        st.error(f"Fehler beim Öffnen der Tabelle: {e}")
+else:
+    st.error("Es konnte keine Verbindung zu Google Sheets hergestellt werden.")
 
 # --- AB HIER DEINE WEITERE LOGIK (z.B. sheet = client.open(...)) ---
 
