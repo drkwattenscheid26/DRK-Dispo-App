@@ -58,7 +58,7 @@ else:
 client = get_gspread_client()
 
     # Lokal am PC
-    try:
+     try:
         creds = Credentials.from_service_account_file("credentials.json", scopes=scope)
         return gspread.authorize(creds)
     except Exception as e:
