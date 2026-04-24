@@ -1,27 +1,39 @@
+import streamlit as st
+import gspread
+import pandas as pd
+import json
+from google.oauth2.service_account import Credentials
+
+# --- 1. GLOBALE DATENBANK-VERBINDUNG ---
+scope = ["https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/drive"]
+
 def get_gspread_client():
-    scope = ["https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/drive"]
-    
-    # Der folgende Block muss genau 4 Leerzeichen eingerückt sein
+    # Wir prüfen zuerst, ob wir in der Streamlit Cloud sind
     if "gcp_service_account" in st.secrets:
         try:
+            # 1. Daten laden
             creds_info = dict(st.secrets["gcp_service_account"])
+            
+            # 2. Key reparieren
             if "private_key" in creds_info:
                 creds_info["private_key"] = creds_info["private_key"].replace("\\n", "\n")
             
+            # 3. Credentials erstellen
             creds = Credentials.from_service_account_info(creds_info, scopes=scope)
             return gspread.authorize(creds)
         except Exception as e:
             st.error(f"Fehler bei Cloud-Verbindung: {e}")
+            return None
 
-    # Dieser Block muss auf der gleichen Höhe wie das "if" stehen
+    # Falls wir nicht in der Cloud sind, versuchen wir es lokal
     try:
         creds = Credentials.from_service_account_file("credentials.json", scopes=scope)
         return gspread.authorize(creds)
     except Exception as e:
-        st.warning(f"Lokale Verbindung nicht möglich: {e}")
+        st.warning("Lokale credentials.json nicht gefunden.")
         return None
 
-# Dieser Befehl muss ganz links am Rand stehen
+# Initialisierung des Clients (Ganz links am Rand!)
 client = get_gspread_client()
 
     # Lokal am PC
