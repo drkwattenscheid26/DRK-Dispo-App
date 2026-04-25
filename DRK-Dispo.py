@@ -1,7 +1,7 @@
 import streamlit as st
 import gspread
 from google.oauth2.service_account import Credentials
-import pandas as pd
+import streamlit as st
 from datetime import datetime, date, timedelta
 import urllib.parse
 import json
@@ -11,33 +11,41 @@ import json
 # Das muss ganz oben stehen, damit JEDER Teil der App darauf zugreifen kann.
 
 def get_gspread_client():
-    scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
+    # Erweiterte Scopes für Google Sheets und Drive
+    scope = [
+        "https://www.googleapis.com/auth/spreadsheets",
+        "https://www.googleapis.com/auth/drive"
+    ]
     
+    # --- 1. Versuch: Streamlit Cloud Secrets ---
     if "gcp_service_account" in st.secrets:
         try:
-            # 1. Daten als Dictionary laden
+            # Daten aus den Secrets laden
             creds_info = dict(st.secrets["gcp_service_account"])
             
-            # 2. Schlüssel reinigen (MUSS vor der Erstellung der creds passieren!)
+            # WICHTIG: Die Reinigung des Schlüssels für die moderne Bibliothek
             if "private_key" in creds_info:
-                # Wir ersetzen textuelle Backslashes durch echte Zeilenumbrüche
                 creds_info["private_key"] = creds_info["private_key"].replace("\\n", "\n")
             
-            # 3. Jetzt erst die Credentials erstellen
-            creds = ServiceAccountCredentials.from_json_dict(creds_info, scope)
+            # Nutzung der modernen 'google-auth' Bibliothek statt ServiceAccountCredentials
+            creds = Credentials.from_service_account_info(creds_info, scopes=scope)
             return gspread.authorize(creds)
             
         except Exception as e:
             st.error(f"Fehler bei Cloud-Verbindung: {e}")
 
-    # --- Lokal am PC (Fallback) ---
+    # --- 2. Versuch: Lokal am PC (credentials.json) ---
     try:
-        creds = ServiceAccountCredentials.from_json_keyfile_name("credentials.json", scope)
-        return gspread.authorize(creds)
+        if os.path.exists("credentials.json"):
+            creds = Credentials.from_service_account_file("credentials.json", scopes=scope)
+            return gspread.authorize(creds)
     except Exception as e:
         st.error(f"Lokale Verbindung fehlgeschlagen: {e}")
-        return None
+    
+    return None
 
+# Initialisierung des Clients
+client = get_gspread_client()
 # Jetzt rufen wir die Funktion auf und speichern das Ergebnis in 'client'
 client = get_gspread_client()
 
