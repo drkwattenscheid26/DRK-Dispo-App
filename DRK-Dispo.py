@@ -36,7 +36,6 @@ if client:
 else:
     st.warning("Keine aktive Verbindung zu Google Sheets.")
 # Verbindung initialisieren
-client = get_gspread_client()
 
 # Verbindung sofort beim Start aufbauen
 try:
