@@ -4,11 +4,14 @@ from google.oauth2.service_account import Credentials
 import pandas as pd
 from datetime import datetime, date
 
-# 1. Seite einrichten
+# 1. Seite einrichten (Konfiguration)
 st.set_page_config(page_title="DRK Zentrale", page_icon="🚑", layout="wide")
-st.title("🚑 DRK Einsatzplanung")
 
-# 2. Authentifizierung (Sicher verpackt)
+# Titel nur einmal ganz oben
+st.title("🚑 DRK Einsatzplanung")
+st.markdown("---") # Eine feine Trennlinie für die Optik
+
+# 2. Authentifizierung (Bleibt im Hintergrund)
 @st.cache_resource
 def get_gspread_client():
     try:
@@ -19,45 +22,49 @@ def get_gspread_client():
         creds = Credentials.from_service_account_info(info, scopes=scope)
         return gspread.authorize(creds)
     except Exception as e:
-        st.error(f"Login fehlgeschlagen: {e}")
         return None
 
 client = get_gspread_client()
 
-# 3. Daten laden & Tabs anzeigen
+# 3. Haupt-Interface
 if client:
     try:
-        # Tabelle öffnen
+        # Tabelle laden
         TABELLEN_ID = "1-UDDHPbmgKzPLtQCktAlqaHdfLOD6IjtGflmzw5yILU"
         sh = client.open_by_key(TABELLEN_ID)
         
-        # Tabs erstellen für eine saubere Oberfläche
-        tab1, tab2, tab3 = st.tabs(["📅 Disposition", "🚐 Fuhrpark", "👤 Personal"])
+        # --- DIE REITER (TABS) ---
+        tab_dispo, tab_fuhrpark, tab_personal = st.tabs([
+            "📅 Disposition / Fahrgäste", 
+            "🚐 Fuhrpark-Status", 
+            "👤 Personal"
+        ])
 
-        with tab1:
-            # Versuche das Blatt 'Disposition' zu laden
-            try:
-                sheet = sh.worksheet("Disposition")
-                df = pd.DataFrame(sheet.get_all_records())
-                if not df.empty:
-                    st.dataframe(df, use_container_width=True)
-                else:
-                    st.info("Das Blatt 'Disposition' ist noch leer.")
-            except:
-                st.warning("Hinweis: Ein Tabellenblatt namens 'Disposition' wurde nicht gefunden. Zeige stattdessen das erste verfügbare Blatt an:")
-                df_first = pd.DataFrame(sh.get_worksheet(0).get_all_records())
-                st.dataframe(df_first, use_container_width=True)
+        with tab_dispo:
+            st.subheader("Aktuelle Fahrgast-Liste")
+            # Wir laden das erste Blatt
+            sheet = sh.get_worksheet(0)
+            data = sheet.get_all_records()
+            
+            if data:
+                df = pd.DataFrame(data)
+                # Die Tabelle wird jetzt NUR HIER im Tab angezeigt
+                st.dataframe(df, use_container_width=True, hide_index=True)
+            else:
+                st.info("Keine Einträge in der Dispo-Liste gefunden.")
 
-        with tab2:
-            st.subheader("Fuhrpark-Verwaltung")
-            st.info("Hier werden später die Fahrzeugdaten angezeigt.")
+        with tab_fuhrpark:
+            st.subheader("Fahrzeugübersicht")
+            st.write("Hier erscheinen bald die Statusmeldungen der Fahrzeuge.")
 
-        with tab3:
-            st.subheader("Personal-Übersicht")
-            st.info("Hier werden später die Mitarbeiterdaten angezeigt.")
+        with tab_personal:
+            st.subheader("Mitarbeiter")
+            st.write("Hier wird die Verfügbarkeit des Personals verwaltet.")
 
     except Exception as e:
-        st.error(f"Fehler beim Zugriff auf die Tabelle: {e}")
+        st.error(f"Daten konnten nicht geladen werden. Bitte Tabellen-Struktur prüfen.")
+else:
+    st.error("Verbindung zu Google fehlgeschlagen. Bitte Secrets prüfen.")
 
 # Verbindung sofort beim Start aufbauen
 try:
