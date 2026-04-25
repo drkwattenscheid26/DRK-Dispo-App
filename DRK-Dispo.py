@@ -87,7 +87,7 @@ else:
     st.info("Versuche die Verbindung zum Google Sheet aufzubauen...")
 
 # 3. Daten laden (nur wenn der Client erfolgreich erstellt wurde)
-if client is not None:
+ if client is not None:
     try:
         # !!! ERSETZE DAS MIT DEINEM TABELLENNAMEN !!!
         # Falls der Name nicht geht, nutze die ID aus der URL
