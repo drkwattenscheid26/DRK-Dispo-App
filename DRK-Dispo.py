@@ -6,9 +6,14 @@ import pandas as pd
 st.set_page_config(page_title="DRK Dispo", layout="wide")
 st.title("🚑 DRK Einsatzplanung")
 
+# Funktion für die Verbindung
 def get_data():
     try:
         # 1. Credentials aus Secrets laden
+        if "gcp_service_account" not in st.secrets:
+            st.error("Secrets 'gcp_service_account' nicht gefunden!")
+            return None
+            
         info = dict(st.secrets["gcp_service_account"])
         
         # 2. Key säubern (WICHTIG für JWT Signature)
@@ -25,17 +30,27 @@ def get_data():
         spreadsheet = client.open_by_key(TABELLEN_ID)
         sheet = spreadsheet.get_worksheet(0) # Öffnet das erste Tabellenblatt
         
-        return pd.DataFrame(sheet.get_all_records())
+        # Daten ziehen
+        data = sheet.get_all_records()
+        return pd.DataFrame(data)
 
     except Exception as e:
-        st.error(f"❌ Fehler: {e}")
+        st.error(f"❌ Detail-Fehler: {e}")
         return None
 
-# Daten anzeigen
+# --- Hauptprogramm ---
+# Hier rufen wir die Funktion auf und speichern das Ergebnis in 'df'
 df = get_data()
+
 if df is not None:
-    st.success("Verbindung erfolgreich!")
-    st.dataframe(df, use_container_width=True)
+    if not df.empty:
+        st.success("✅ Verbindung erfolgreich! Daten geladen.")
+        # Tabelle schöner anzeigen
+        st.dataframe(df, use_container_width=True)
+    else:
+        st.warning("⚠️ Die Tabelle wurde gefunden, scheint aber leer zu sein.")
+else:
+    st.info("Versuche die Verbindung zum Google Sheet aufzubauen...")
 
 # 3. Daten laden (nur wenn der Client erfolgreich erstellt wurde)
 if client is not None:
