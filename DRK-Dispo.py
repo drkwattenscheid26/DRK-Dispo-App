@@ -1,34 +1,37 @@
 import streamlit as st
 import gspread
-import pandas as pd
 from google.oauth2.service_account import Credentials
+import pandas as pd
 
-st.set_page_config(page_title="DRK Dispo App", layout="wide")
-st.title("🚑 DRK Dispo Tourenplanung")
+st.title("🚑 DRK Dispo - Finaler Versuch")
 
-# 1. Verbindungseinstellungen
-scope = ["https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/drive"]
+try:
+    # 1. Daten aus Secrets laden
+    info = dict(st.secrets["gcp_service_account"])
+    
+    # 2. Den Key REPARIEREN (Erzwingt echte Zeilenumbrüche)
+    # Das hier löst den JWT Signature Fehler, wenn der Key als Einzeiler kommt
+    if "private_key" in info:
+        info["private_key"] = info["private_key"].replace("\\n", "\n")
+    
+    # 3. Authentifizierung
+    scope = ["https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/drive"]
+    creds = Credentials.from_service_account_info(info, scopes=scope)
+    client = gspread.authorize(creds)
+    
+    # 4. Zugriff auf die Tabelle
+    # TEST: Wir öffnen über die ID (steht in deiner Browser URL)
+    # Beispiel: https://docs.google.com/spreadsheets/d/HIER_STEHT_DIE_ID/edit
+    TABELLEN_ID = "1ABC...deine_id..." # <--- HIER DEINE ID EINTRAGEN
+    
+    sheet = client.open_by_key(TABELLEN_ID).get_worksheet(0)
+    data = sheet.get_all_records()
+    
+    st.success("✅ Es hat geklappt! Daten sind da.")
+    st.dataframe(pd.DataFrame(data))
 
-# Wir initialisieren den Client als None
-client = None
-
-# 2. Authentifizierung
-if "gcp_service_account" in st.secrets:
-    try:
-        # Secrets laden
-        info = dict(st.secrets["gcp_service_account"])
-        
-        # Key-Formatierung korrigieren
-        if "private_key" in info:
-            info["private_key"] = info["private_key"].replace("\\n", "\n")
-        
-        # Anmeldedaten erstellen
-        creds = Credentials.from_service_account_info(info, scopes=scope)
-        client = gspread.authorize(creds)
-    except Exception as e:
-        st.error(f"❌ Fehler bei der Anmeldung: {e}")
-else:
-    st.error("❌ Das Secret 'gcp_service_account' wurde im Streamlit-Dashboard nicht gefunden!")
+except Exception as e:
+    st.error(f"Fehler: {e}")
 
 # 3. Daten laden (nur wenn der Client erfolgreich erstellt wurde)
 if client is not None:
