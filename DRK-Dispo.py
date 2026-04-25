@@ -3,28 +3,32 @@ import gspread
 from google.oauth2.service_account import Credentials
 import pandas as pd
 
+# Konfiguration der Seite
 st.set_page_config(page_title="DRK Dispo", layout="wide")
 st.title("🚑 DRK Einsatzplanung")
 
 def get_data():
     try:
+        # 1. Credentials aus Secrets laden
         if "gcp_service_account" not in st.secrets:
             st.error("Secrets nicht gefunden!")
             return None
             
         info = dict(st.secrets["gcp_service_account"])
+        
+        # 2. Key säubern
         if "private_key" in info:
             info["private_key"] = info["private_key"].replace("\\n", "\n").strip()
 
+        # 3. Authentifizierung
         scope = ["https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/drive"]
         creds = Credentials.from_service_account_info(info, scopes=scope)
         client = gspread.authorize(creds)
         
+        # 4. Tabelle öffnen
         TABELLEN_ID = "1-UDDHPbmgKzPLtQCktAlqaHdfLOD6IjtGflmzw5yILU"
         spreadsheet = client.open_by_key(TABELLEN_ID)
-        
-        # Wir versuchen das erste Blatt zu nehmen
-        sheet = spreadsheet.get_worksheet(0) 
+        sheet = spreadsheet.get_worksheet(0) # Das erste Tabellenblatt
         
         # Daten abrufen
         data = sheet.get_all_records()
@@ -34,6 +38,17 @@ def get_data():
         st.error(f"❌ Fehler: {e}")
         return None
 
+# --- HAUPTPROGRAMM ---
+# Wir rufen die Funktion auf. Das Ergebnis landet in 'df' (nicht in 'client'!)
+df = get_data()
+
+if df is not None:
+    if not df.empty:
+        st.success("✅ Daten erfolgreich geladen!")
+        st.dataframe(df, use_container_width=True)
+    else:
+        st.warning("⚠️ Tabelle gefunden, aber keine Daten erkannt.")
+        st.info("Hinweis: Google Sheets braucht in der ersten Zeile Überschriften (z.B. Name, Tour).")
 # --- HAUPTPROGRAMM ---
 df = get_data()
 
