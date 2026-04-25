@@ -3,49 +3,51 @@ import gspread
 from google.oauth2.service_account import Credentials
 import pandas as pd
 
-# 1. Konfiguration der Seite
+# Seite einrichten
 st.set_page_config(page_title="DRK Dispo", layout="wide")
 st.title("🚑 DRK Einsatzplanung")
 
-# 2. Die Funktion (Der Werkzeugkasten)
 def get_data():
     try:
+        # 1. Secrets laden
         if "gcp_service_account" not in st.secrets:
             st.error("Secrets nicht gefunden!")
             return None
             
         info = dict(st.secrets["gcp_service_account"])
         
+        # 2. Key säubern
         if "private_key" in info:
             info["private_key"] = info["private_key"].replace("\\n", "\n").strip()
 
+        # 3. Authentifizierung
         scope = ["https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/drive"]
         creds = Credentials.from_service_account_info(info, scopes=scope)
         client = gspread.authorize(creds)
         
+        # 4. Tabelle öffnen
         TABELLEN_ID = "1-UDDHPbmgKzPLtQCktAlqaHdfLOD6IjtGflmzw5yILU"
         spreadsheet = client.open_by_key(TABELLEN_ID)
         sheet = spreadsheet.get_worksheet(0) 
         
+        # Daten abrufen
         data = sheet.get_all_records()
         return pd.DataFrame(data)
 
     except Exception as e:
-        st.error(f"❌ Fehler bei der Verbindung: {e}")
+        st.error(f"❌ Fehler: {e}")
         return None
 
-# 3. Das Hauptprogramm (Hier werden die Daten abgerufen und angezeigt)
-# Wir rufen die Funktion EINMAL auf
+# --- HAUPTPROGRAMM ---
 df = get_data()
 
-# Wenn wir Daten erhalten haben, zeigen wir sie an
 if df is not None:
     if not df.empty:
         st.success("✅ Daten erfolgreich geladen!")
         st.dataframe(df, use_container_width=True)
     else:
-        st.warning("⚠️ Tabelle gefunden, aber sie scheint leer zu sein.")
-        st.info("Hinweis: Prüfe, ob Zeile 1 in Google Sheets Überschriften enthält.")
+        st.warning("⚠️ Tabelle gefunden, aber keine Daten erkannt.")
+        st.info("Hinweis: Google Sheets braucht in der ersten Zeile Überschriften (z.B. Name, Tour).")
 else:
     st.info("Suche nach Tabellen-Verbindung...")
 
