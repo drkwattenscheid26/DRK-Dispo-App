@@ -3,88 +3,51 @@ import gspread
 from google.oauth2.service_account import Credentials
 import pandas as pd
 
-# Konfiguration der Seite
+# 1. Konfiguration der Seite
 st.set_page_config(page_title="DRK Dispo", layout="wide")
 st.title("🚑 DRK Einsatzplanung")
 
+# 2. Die Funktion (Der Werkzeugkasten)
 def get_data():
     try:
-        # 1. Credentials aus Secrets laden
         if "gcp_service_account" not in st.secrets:
             st.error("Secrets nicht gefunden!")
             return None
             
         info = dict(st.secrets["gcp_service_account"])
         
-        # 2. Key säubern
         if "private_key" in info:
             info["private_key"] = info["private_key"].replace("\\n", "\n").strip()
 
-        # 3. Authentifizierung
         scope = ["https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/drive"]
         creds = Credentials.from_service_account_info(info, scopes=scope)
         client = gspread.authorize(creds)
         
-        # 4. Tabelle öffnen
         TABELLEN_ID = "1-UDDHPbmgKzPLtQCktAlqaHdfLOD6IjtGflmzw5yILU"
         spreadsheet = client.open_by_key(TABELLEN_ID)
-        sheet = spreadsheet.get_worksheet(0) # Das erste Tabellenblatt
+        sheet = spreadsheet.get_worksheet(0) 
         
-        # Daten abrufen
         data = sheet.get_all_records()
         return pd.DataFrame(data)
 
     except Exception as e:
-        st.error(f"❌ Fehler: {e}")
+        st.error(f"❌ Fehler bei der Verbindung: {e}")
         return None
 
-# --- HAUPTPROGRAMM ---
-# Wir rufen die Funktion auf. Das Ergebnis landet in 'df' (nicht in 'client'!)
+# 3. Das Hauptprogramm (Hier werden die Daten abgerufen und angezeigt)
+# Wir rufen die Funktion EINMAL auf
 df = get_data()
 
+# Wenn wir Daten erhalten haben, zeigen wir sie an
 if df is not None:
     if not df.empty:
         st.success("✅ Daten erfolgreich geladen!")
         st.dataframe(df, use_container_width=True)
     else:
-        st.warning("⚠️ Tabelle gefunden, aber keine Daten erkannt.")
-        st.info("Hinweis: Google Sheets braucht in der ersten Zeile Überschriften (z.B. Name, Tour).")
-# --- HAUPTPROGRAMM ---
-df = get_data()
-
-if df is not None:
-    if not df.empty:
-        st.success("✅ Daten geladen!")
-        st.dataframe(df, use_container_width=True)
-    else:
-        st.warning("⚠️ Die Tabelle wurde gefunden, aber sie scheint leer zu sein oder die erste Zeile enthält keine Überschriften.")
-        st.info("Hinweis: Google Sheets benötigt in der ersten Zeile Überschriften (z.B. Name, Datum, Tour), um 'Records' zu erkennen.")
-
-# --- HAUPTPROGRAMM --- (Hier wird die Arbeit gemacht)
-# Wir rufen die Funktion von oben auf
-df = get_data()
-
-# Wenn Daten zurückgekommen sind, zeigen wir sie an
-if df is not None:
-    if not df.empty:
-        st.success("✅ Verbindung erfolgreich! Daten geladen.")
-        # Tabelle anzeigen
-        st.dataframe(df, use_container_width=True)
-    else:
-        st.warning("⚠️ Die Tabelle wurde gefunden, ist aber leer.")
-# --- Hauptprogramm ---
-# Hier rufen wir die Funktion auf und speichern das Ergebnis in 'df'
-df = get_data()
-
-if df is not None:
-    if not df.empty:
-        st.success("✅ Verbindung erfolgreich! Daten geladen.")
-        # Tabelle schöner anzeigen
-        st.dataframe(df, use_container_width=True)
-    else:
-        st.warning("⚠️ Die Tabelle wurde gefunden, scheint aber leer zu sein.")
+        st.warning("⚠️ Tabelle gefunden, aber sie scheint leer zu sein.")
+        st.info("Hinweis: Prüfe, ob Zeile 1 in Google Sheets Überschriften enthält.")
 else:
-    st.info("Versuche die Verbindung zum Google Sheet aufzubauen...")
+    st.info("Suche nach Tabellen-Verbindung...")
 
 # 3. Daten laden (nur wenn der Client erfolgreich erstellt wurde)
     if client is not None:
