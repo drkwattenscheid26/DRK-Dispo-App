@@ -9,8 +9,7 @@ try:
     # 1. Daten aus Secrets laden
     info = dict(st.secrets["gcp_service_account"])
     
-    # 2. Den Key REPARIEREN (Erzwingt echte Zeilenumbrüche)
-    # Das hier löst den JWT Signature Fehler, wenn der Key als Einzeiler kommt
+    # 2. Den Key REPARIEREN
     if "private_key" in info:
         info["private_key"] = info["private_key"].replace("\\n", "\n")
     
@@ -19,18 +18,23 @@ try:
     creds = Credentials.from_service_account_info(info, scopes=scope)
     client = gspread.authorize(creds)
     
-   
-
+    # 4. Zugriff auf die Tabelle (NUR die ID nutzen!)
+    TABELLEN_ID = "1-UDDHPbmgKzPLtQCktAlqaHdfLOD6IjtGflmzw5yILU"
     
-TABELLEN_ID = "1-UDDHPbmgKzPLtQCktAlqaHdfLOD6IjtGflmzw5yILU/edit?gid=1150878865#gid=1150878865" 
-spreadsheet = client.open_by_key(TABELLEN_ID)
+    # Öffnen und Daten ziehen
+    spreadsheet = client.open_by_key(TABELLEN_ID)
+    sheet = spreadsheet.get_worksheet(0)
     data = sheet.get_all_records()
     
-    st.success("✅ Es hat geklappt! Daten sind da.")
-    st.dataframe(pd.DataFrame(data))
+    if data:
+        st.success("✅ Verbindung erfolgreich! Daten geladen.")
+        df = pd.DataFrame(data)
+        st.dataframe(df)
+    else:
+        st.warning("⚠️ Tabelle ist leer (keine Daten gefunden).")
 
 except Exception as e:
-    st.error(f"Fehler: {e}")
+    st.error(f"❌ Fehler: {e}")
 
 # 3. Daten laden (nur wenn der Client erfolgreich erstellt wurde)
 if client is not None:
