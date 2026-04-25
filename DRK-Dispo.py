@@ -2,85 +2,90 @@ import streamlit as st
 import gspread
 from google.oauth2.service_account import Credentials
 import pandas as pd
-from datetime import datetime, date, timedelta # <--- Das hier hat gefehlt!
+from datetime import datetime, date
 
 # 1. Seiteneinstellungen
 st.set_page_config(page_title="DRK Zentrale", page_icon="🚑", layout="wide")
 
-# 2. Authentifizierung im Hintergrund
+# --- LOGIN LOGIK ---
+if "logged_in" not in st.session_state:
+    st.session_state.logged_in = False
+
+def check_login():
+    if st.session_state.password == "drk112": # <-- Hier dein gewünschtes Passwort ändern
+        st.session_state.logged_in = True
+    else:
+        st.error("Falsches Passwort!")
+
+# --- FALLS NICHT EINGELOGGT: NUR LOGIN-MASKE ZEIGEN ---
+if not st.session_state.logged_in:
+    st.title("🚑 DRK Zentrale - Login")
+    st.text_input("Bitte Passwort eingeben", type="password", key="password", on_change=check_login)
+    st.stop() # Beendet das Programm hier, damit nichts geladen wird
+
+# --- AB HIER: CODE FÜR EINGELOGGTE NUTZER ---
+
 @st.cache_resource
 def get_gspread_client():
     try:
-        if "gcp_service_account" not in st.secrets:
-            st.error("Secrets nicht gefunden!")
-            return None
         info = dict(st.secrets["gcp_service_account"])
         if "private_key" in info:
             info["private_key"] = info["private_key"].replace("\\n", "\n").strip()
         scope = ["https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/drive"]
         creds = Credentials.from_service_account_info(info, scopes=scope)
         return gspread.authorize(creds)
-    except Exception as e:
+    except Exception:
         return None
 
 client = get_gspread_client()
 
-# --- DAS LAYOUT ---
+# Titel erscheint erst NACH dem Login
 st.title("🚑 DRK Einsatzplanung")
+st.markdown(f"Angemeldet am: {date.today().strftime('%d.%m.%Y')}")
 st.markdown("---")
 
 if client:
     try:
-        # Verbindung zur Tabelle
         sh = client.open_by_key("1-UDDHPbmgKzPLtQCktAlqaHdfLOD6IjtGflmzw5yILU")
-        heute_datum = date.today().strftime("%d.%m.%Y")
-
+        
         # Tabs definieren
         tab_dispo, tab_fuhrpark, tab_personal = st.tabs([
-            f"📅 Disposition ({heute_datum})", 
+            "📅 Disposition", 
             "🚐 Fuhrpark", 
             "👤 Personal"
         ])
 
-        # --- TAB 1: DISPOSITION ---
         with tab_dispo:
             st.subheader("Aktuelle Fahrgäste")
-            try:
-                sheet_dispo = sh.get_worksheet(0)
-                data = sheet_dispo.get_all_records()
-                if data:
-                    st.dataframe(pd.DataFrame(data), use_container_width=True, hide_index=True)
-                else:
-                    st.info("Die Tabelle 'Disposition' enthält aktuell keine Daten.")
-            except Exception as e:
-                st.error("Konnte das Blatt 'Disposition' nicht laden.")
+            # Wir laden das erste Blatt (Index 0)
+            data = sh.get_worksheet(0).get_all_records()
+            if data:
+                st.dataframe(pd.DataFrame(data), use_container_width=True, hide_index=True)
+            else:
+                st.info("Keine Einträge in der Disposition.")
 
-        # --- TAB 2: FUHRPARK ---
         with tab_fuhrpark:
             st.subheader("Fahrzeugstatus")
             try:
-                sheet_veh = sh.worksheet("Fahrzeuge")
-                data_veh = sheet_veh.get_all_records()
-                if data_veh:
-                    st.dataframe(pd.DataFrame(data_veh), use_container_width=True, hide_index=True)
+                data_veh = sh.worksheet("Fahrzeuge").get_all_records()
+                st.dataframe(pd.DataFrame(data_veh), use_container_width=True, hide_index=True)
             except:
-                st.info("Hinweis: Blatt 'Fahrzeuge' wurde nicht gefunden.")
+                st.info("Blatt 'Fahrzeuge' wurde nicht im Google Sheet gefunden.")
 
-        # --- TAB 3: PERSONAL ---
         with tab_personal:
             st.subheader("Personalübersicht")
             try:
-                sheet_pers = sh.worksheet("Personal")
-                data_pers = sheet_pers.get_all_records()
-                if data_pers:
-                    st.dataframe(pd.DataFrame(data_pers), use_container_width=True, hide_index=True)
+                data_pers = sh.worksheet("Personal").get_all_records()
+                st.dataframe(pd.DataFrame(data_pers), use_container_width=True, hide_index=True)
             except:
-                st.info("Hinweis: Blatt 'Personal' wurde nicht gefunden.")
+                st.info("Blatt 'Personal' wurde nicht im Google Sheet gefunden.")
 
     except Exception as e:
-        st.error(f"Fehler beim Zugriff auf Google Sheets: {e}")
+        st.error("Fehler beim Laden der Google-Daten.")
 else:
-    st.error("Konnte keine Verbindung zu Google herstellen. Bitte die Secrets prüfen.")
+    st.error("Verbindung zu Google fehlgeschlagen.")
+
+# WICHTIG: Hier darf kein Code mehr kommen! Die Datei muss hier enden.
 
 # Verbindung sofort beim Start aufbauen
 try:
