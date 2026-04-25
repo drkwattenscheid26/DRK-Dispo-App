@@ -801,6 +801,7 @@ else:
         st.rerun()
 
 # --- FALLBACK FÜR NICHT-AUTORISIERTEN ZUGRIFF ---
+# --- DAS HIER MUSS GANZ LINKS STEHEN ---
 else:
     st.markdown("<br><br><br>", unsafe_allow_name_with_html=True)
     c_log1, c_log2, c_log3 = st.columns([1, 2, 1])
