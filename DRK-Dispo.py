@@ -4,14 +4,14 @@ from google.oauth2.service_account import Credentials
 import pandas as pd
 from datetime import datetime, date
 
-# 1. Seite einrichten (Konfiguration)
+# 1. Seite einrichten
 st.set_page_config(page_title="DRK Zentrale", page_icon="🚑", layout="wide")
 
-# Titel nur einmal ganz oben
+# Titel (Einmalig ganz oben)
 st.title("🚑 DRK Einsatzplanung")
-st.markdown("---") # Eine feine Trennlinie für die Optik
+st.markdown("---")
 
-# 2. Authentifizierung (Bleibt im Hintergrund)
+# 2. Authentifizierung (Im Hintergrund)
 @st.cache_resource
 def get_gspread_client():
     try:
@@ -33,38 +33,59 @@ if client:
         TABELLEN_ID = "1-UDDHPbmgKzPLtQCktAlqaHdfLOD6IjtGflmzw5yILU"
         sh = client.open_by_key(TABELLEN_ID)
         
-        # --- DIE REITER (TABS) ---
+        # --- DIE REITER (TABS) DEFINIEREN ---
         tab_dispo, tab_fuhrpark, tab_personal = st.tabs([
             "📅 Disposition / Fahrgäste", 
             "🚐 Fuhrpark-Status", 
             "👤 Personal"
         ])
 
+        # --- INHALT FÜR TAB 1: DISPOSITION ---
         with tab_dispo:
             st.subheader("Aktuelle Fahrgast-Liste")
-            # Wir laden das erste Blatt
-            sheet = sh.get_worksheet(0)
-            data = sheet.get_all_records()
-            
-            if data:
-                df = pd.DataFrame(data)
-                # Die Tabelle wird jetzt NUR HIER im Tab angezeigt
-                st.dataframe(df, use_container_width=True, hide_index=True)
-            else:
-                st.info("Keine Einträge in der Dispo-Liste gefunden.")
+            try:
+                # Wir nehmen das Blatt "Disposition" oder das 1. Blatt
+                sheet_dispo = sh.worksheet("Disposition")
+                data_dispo = sheet_dispo.get_all_records()
+                if data_dispo:
+                    df_dispo = pd.DataFrame(data_dispo)
+                    st.dataframe(df_dispo, use_container_width=True, hide_index=True)
+                else:
+                    st.info("Keine Einträge in der Disposition gefunden.")
+            except:
+                st.warning("Blatt 'Disposition' nicht gefunden.")
 
+        # --- INHALT FÜR TAB 2: FUHRPARK ---
         with tab_fuhrpark:
             st.subheader("Fahrzeugübersicht")
-            st.write("Hier erscheinen bald die Statusmeldungen der Fahrzeuge.")
+            try:
+                sheet_veh = sh.worksheet("Fahrzeuge")
+                data_veh = sheet_veh.get_all_records()
+                if data_veh:
+                    df_veh = pd.DataFrame(data_veh)
+                    st.dataframe(df_veh, use_container_width=True, hide_index=True)
+            except:
+                st.info("Hier erscheinen bald die Fahrzeug-Daten (Blatt 'Fahrzeuge' fehlt).")
 
+        # --- INHALT FÜR TAB 3: PERSONAL (Hier gehört es hin!) ---
         with tab_personal:
-            st.subheader("Mitarbeiter")
-            st.write("Hier wird die Verfügbarkeit des Personals verwaltet.")
+            st.subheader("Personal-Verwaltung")
+            try:
+                # NUR HIER DRINNEN wird das Personal geladen und angezeigt
+                sheet_pers = sh.worksheet("Personal")
+                data_pers = sheet_pers.get_all_records()
+                if data_pers:
+                    df_pers = pd.DataFrame(data_pers)
+                    st.dataframe(df_pers, use_container_width=True, hide_index=True)
+                else:
+                    st.info("Keine Personal-Daten gefunden.")
+            except:
+                st.info("Kein Blatt namens 'Personal' gefunden. Bitte im Google Sheet anlegen.")
 
     except Exception as e:
-        st.error(f"Daten konnten nicht geladen werden. Bitte Tabellen-Struktur prüfen.")
+        st.error(f"Fehler beim Laden der Daten.")
 else:
-    st.error("Verbindung zu Google fehlgeschlagen. Bitte Secrets prüfen.")
+    st.error("Verbindung fehlgeschlagen.")
 
 # Verbindung sofort beim Start aufbauen
 try:
