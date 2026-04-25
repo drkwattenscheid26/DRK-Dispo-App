@@ -3,39 +3,58 @@ import gspread
 import pandas as pd
 from google.oauth2.service_account import Credentials
 
-# 1. Setup
+st.set_page_config(page_title="DRK Dispo App", layout="wide")
+st.title("🚑 DRK Dispo Tourenplanung")
+
+# 1. Verbindungseinstellungen
 scope = ["https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/drive"]
 
-# 2. Verbindung aufbauen
+# Wir initialisieren den Client als None
 client = None
 
-# Ersetze die Zeile 12 (und folgende) durch das hier:
-try:
-    if "gcp_service_account" in st.secrets:
-        info = dict(st.secrets["gcp_service_account"])
-        # ... restlicher Code wie vorhin ...
-    else:
-        st.error("Das Secret 'gcp_service_account' wurde nicht in den Streamlit Settings gefunden!")
-except Exception as e:
-    st.error(f"Kritischer Fehler beim Lesen der Secrets: {e}")
-
-# 3. Tabelle laden
-if client:
+# 2. Authentifizierung
+if "gcp_service_account" in st.secrets:
     try:
-        # Ersetze das hier durch deinen echten Tabellennamen!
-        spreadsheet = client.open("DRK-Dispo") 
-        sheet = spreadsheet.get_worksheet(0)
-        data = sheet.get_all_records()
-        df = pd.DataFrame(data)
+        # Secrets laden
+        info = dict(st.secrets["gcp_service_account"])
         
-        st.success("Verbindung steht! Daten geladen.")
-        st.dataframe(df)
+        # Key-Formatierung korrigieren
+        if "private_key" in info:
+            info["private_key"] = info["private_key"].replace("\\n", "\n")
+        
+        # Anmeldedaten erstellen
+        creds = Credentials.from_service_account_info(info, scopes=scope)
+        client = gspread.authorize(creds)
     except Exception as e:
-        st.error(f"Fehler beim Zugriff auf die Tabelle: {e}")
-        st.info("Hinweis: Hast du die E-Mail des Service-Accounts in Google Sheets als 'Editor' freigegeben?")
+        st.error(f"❌ Fehler bei der Anmeldung: {e}")
 else:
-    st.warning("Keine aktive Verbindung zu Google Sheets.")
-# Verbindung initialisieren
+    st.error("❌ Das Secret 'gcp_service_account' wurde im Streamlit-Dashboard nicht gefunden!")
+
+# 3. Daten laden (nur wenn der Client erfolgreich erstellt wurde)
+if client is not None:
+    try:
+        # !!! ERSETZE DAS MIT DEINEM TABELLENNAMEN !!!
+        # Falls der Name nicht geht, nutze die ID aus der URL
+        TABELLEN_NAME = "DRK-Dispo" 
+        
+        spreadsheet = client.open(TABELLEN_NAME)
+        sheet = spreadsheet.get_worksheet(0) # Das erste Tabellenblatt
+        
+        data = sheet.get_all_records()
+        if data:
+            df = pd.DataFrame(data)
+            st.success("✅ Verbindung erfolgreich! Daten geladen.")
+            st.dataframe(df, use_container_width=True)
+        else:
+            st.warning("⚠️ Die Tabelle scheint leer zu sein.")
+            
+    except gspread.exceptions.SpreadsheetNotFound:
+        st.error(f"❌ Tabelle '{TABELLEN_NAME}' wurde nicht gefunden.")
+        st.info("Tipp: Prüfe den Namen oder nutze die ID aus der URL.")
+    except Exception as e:
+        st.error(f"❌ Fehler beim Zugriff auf die Tabelle: {e}")
+else:
+    st.warning("⚠️ Warte auf gültige Verbindung... Bitte prüfe die Fehlermeldungen oben.")
 
 # Verbindung sofort beim Start aufbauen
 try:
