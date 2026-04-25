@@ -6,37 +6,44 @@ import pandas as pd
 st.set_page_config(page_title="DRK Dispo", layout="wide")
 st.title("🚑 DRK Einsatzplanung")
 
-# --- FUNKTION --- (Das ist dein Werkzeugkasten)
 def get_data():
     try:
-        # 1. Credentials aus Secrets laden
         if "gcp_service_account" not in st.secrets:
-            st.error("Secrets 'gcp_service_account' nicht gefunden!")
+            st.error("Secrets nicht gefunden!")
             return None
             
         info = dict(st.secrets["gcp_service_account"])
-        
-        # 2. Key säubern (WICHTIG für JWT Signature)
         if "private_key" in info:
             info["private_key"] = info["private_key"].replace("\\n", "\n").strip()
 
-        # 3. Authentifizierung
         scope = ["https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/drive"]
         creds = Credentials.from_service_account_info(info, scopes=scope)
         client = gspread.authorize(creds)
         
-        # 4. Tabelle öffnen
         TABELLEN_ID = "1-UDDHPbmgKzPLtQCktAlqaHdfLOD6IjtGflmzw5yILU"
         spreadsheet = client.open_by_key(TABELLEN_ID)
-        sheet = spreadsheet.get_worksheet(0) # Öffnet das erste Tabellenblatt
         
-        # Daten ziehen
+        # Wir versuchen das erste Blatt zu nehmen
+        sheet = spreadsheet.get_worksheet(0) 
+        
+        # Daten abrufen
         data = sheet.get_all_records()
         return pd.DataFrame(data)
 
     except Exception as e:
-        st.error(f"❌ Detail-Fehler: {e}")
+        st.error(f"❌ Fehler: {e}")
         return None
+
+# --- HAUPTPROGRAMM ---
+df = get_data()
+
+if df is not None:
+    if not df.empty:
+        st.success("✅ Daten geladen!")
+        st.dataframe(df, use_container_width=True)
+    else:
+        st.warning("⚠️ Die Tabelle wurde gefunden, aber sie scheint leer zu sein oder die erste Zeile enthält keine Überschriften.")
+        st.info("Hinweis: Google Sheets benötigt in der ersten Zeile Überschriften (z.B. Name, Datum, Tour), um 'Records' zu erkennen.")
 
 # --- HAUPTPROGRAMM --- (Hier wird die Arbeit gemacht)
 # Wir rufen die Funktion von oben auf
