@@ -12,7 +12,7 @@ creds = Credentials.from_service_account_file('credentials.json', scopes=scope)
 client = gspread.authorize(creds)
 
 # Öffnen der Tabellen (Namen müssen exakt mit Google Sheets übereinstimmen)
-spr = client.open("Deine_Fahrdienst_Tabelle") 
+spr = client.open("DRK-Dispo") 
 disp_sheet = spr.worksheet("Disposition")
 gaeste_sheet = spr.worksheet("Gäste")
 veh_sheet = spr.worksheet("Fuhrpark")
