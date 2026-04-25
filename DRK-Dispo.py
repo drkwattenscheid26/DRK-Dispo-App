@@ -3,38 +3,39 @@ import gspread
 from google.oauth2.service_account import Credentials
 import pandas as pd
 
-st.title("🚑 DRK Dispo - Finaler Versuch")
+st.set_page_config(page_title="DRK Dispo", layout="wide")
+st.title("🚑 DRK Einsatzplanung")
 
-try:
-    # 1. Daten aus Secrets laden
-    info = dict(st.secrets["gcp_service_account"])
-    
-    # 2. Den Key REPARIEREN
-    if "private_key" in info:
-        info["private_key"] = info["private_key"].replace("\\n", "\n")
-    
-    # 3. Authentifizierung
-    scope = ["https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/drive"]
-    creds = Credentials.from_service_account_info(info, scopes=scope)
-    client = gspread.authorize(creds)
-    
-    # 4. Zugriff auf die Tabelle (NUR die ID nutzen!)
-    TABELLEN_ID = "1-UDDHPbmgKzPLtQCktAlqaHdfLOD6IjtGflmzw5yILU"
-    
-    # Öffnen und Daten ziehen
-    spreadsheet = client.open_by_key(TABELLEN_ID)
-    sheet = spreadsheet.get_worksheet(0)
-    data = sheet.get_all_records()
-    
-    if data:
-        st.success("✅ Verbindung erfolgreich! Daten geladen.")
-        df = pd.DataFrame(data)
-        st.dataframe(df)
-    else:
-        st.warning("⚠️ Tabelle ist leer (keine Daten gefunden).")
+def get_data():
+    try:
+        # 1. Credentials aus Secrets laden
+        info = dict(st.secrets["gcp_service_account"])
+        
+        # 2. Key säubern (WICHTIG für JWT Signature)
+        if "private_key" in info:
+            info["private_key"] = info["private_key"].replace("\\n", "\n").strip()
 
-except Exception as e:
-    st.error(f"❌ Fehler: {e}")
+        # 3. Authentifizierung
+        scope = ["https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/drive"]
+        creds = Credentials.from_service_account_info(info, scopes=scope)
+        client = gspread.authorize(creds)
+        
+        # 4. Tabelle öffnen
+        TABELLEN_ID = "1-UDDHPbmgKzPLtQCktAlqaHdfLOD6IjtGflmzw5yILU"
+        spreadsheet = client.open_by_key(TABELLEN_ID)
+        sheet = spreadsheet.get_worksheet(0) # Öffnet das erste Tabellenblatt
+        
+        return pd.DataFrame(sheet.get_all_records())
+
+    except Exception as e:
+        st.error(f"❌ Fehler: {e}")
+        return None
+
+# Daten anzeigen
+df = get_data()
+if df is not None:
+    st.success("Verbindung erfolgreich!")
+    st.dataframe(df, use_container_width=True)
 
 # 3. Daten laden (nur wenn der Client erfolgreich erstellt wurde)
 if client is not None:
