@@ -22,7 +22,7 @@ try:
     # 4. Zugriff auf die Tabelle
     # TEST: Wir öffnen über die ID (steht in deiner Browser URL)
     # Beispiel: https://docs.google.com/spreadsheets/d/HIER_STEHT_DIE_ID/edit
-    TABELLEN_ID = "1ABC...deine_id..." # <--- HIER DEINE ID EINTRAGEN
+    TABELLEN_ID = "1-UDDHPbmgKzPLtQCktAlqaHdfLOD6IjtGflmzw5yILU/edit?gid=1150878865#gid=1150878865" # <--- HIER DEINE ID EINTRAGEN
     
     sheet = client.open_by_key(TABELLEN_ID).get_worksheet(0)
     data = sheet.get_all_records()
