@@ -2,80 +2,54 @@ import streamlit as st
 import gspread
 from google.oauth2.service_account import Credentials
 import pandas as pd
+from datetime import datetime, date
 
-# Seite einrichten
-st.set_page_config(page_title="DRK Dispo", layout="wide")
+# 1. Seite einrichten
+st.set_page_config(page_title="DRK Zentrale", page_icon="🚑", layout="wide")
 st.title("🚑 DRK Einsatzplanung")
 
-def get_data():
+# 2. Authentifizierung (Sicher verpackt)
+@st.cache_resource
+def get_gspread_client():
     try:
-        # 1. Secrets laden
         if "gcp_service_account" not in st.secrets:
             st.error("Secrets nicht gefunden!")
             return None
-            
         info = dict(st.secrets["gcp_service_account"])
-        
-        # 2. Key säubern
         if "private_key" in info:
             info["private_key"] = info["private_key"].replace("\\n", "\n").strip()
-
-        # 3. Authentifizierung
         scope = ["https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/drive"]
         creds = Credentials.from_service_account_info(info, scopes=scope)
-        client = gspread.authorize(creds)
-        
-        # 4. Tabelle öffnen
-        TABELLEN_ID = "1-UDDHPbmgKzPLtQCktAlqaHdfLOD6IjtGflmzw5yILU"
-        spreadsheet = client.open_by_key(TABELLEN_ID)
-        sheet = spreadsheet.get_worksheet(0) 
-        
-        # Daten abrufen
-        data = sheet.get_all_records()
-        return pd.DataFrame(data)
-
+        return gspread.authorize(creds)
     except Exception as e:
-        st.error(f"❌ Fehler: {e}")
+        st.error(f"Fehler bei der Anmeldung: {e}")
         return None
 
-# --- HAUPTPROGRAMM ---
-df = get_data()
+client = get_gspread_client()
 
-if df is not None:
-    if not df.empty:
-        st.success("✅ Daten erfolgreich geladen!")
-        st.dataframe(df, use_container_width=True)
-    else:
-        st.warning("⚠️ Tabelle gefunden, aber keine Daten erkannt.")
-        st.info("Hinweis: Google Sheets braucht in der ersten Zeile Überschriften (z.B. Name, Tour).")
-else:
-    st.info("Suche nach Tabellen-Verbindung...")
-
-# 3. Daten laden (nur wenn der Client erfolgreich erstellt wurde)
-    if client is not None:
+# 3. Daten laden und anzeigen
+if client:
     try:
-        # !!! ERSETZE DAS MIT DEINEM TABELLENNAMEN !!!
-        # Falls der Name nicht geht, nutze die ID aus der URL
-        TABELLEN_NAME = "DRK-Dispo" 
+        # Öffne die Tabelle über die ID
+        TABELLEN_ID = "1-UDDHPbmgKzPLtQCktAlqaHdfLOD6IjtGflmzw5yILU"
+        sh = client.open_by_key(TABELLEN_ID)
         
-        spreadsheet = client.open(TABELLEN_NAME)
-        sheet = spreadsheet.get_worksheet(0) # Das erste Tabellenblatt
-        
+        # Erstes Blatt laden
+        sheet = sh.get_worksheet(0)
         data = sheet.get_all_records()
+        
         if data:
             df = pd.DataFrame(data)
-            st.success("✅ Verbindung erfolgreich! Daten geladen.")
+            st.success(f"✅ Verbindung steht! Blatt: '{sheet.title}' geladen.")
             st.dataframe(df, use_container_width=True)
         else:
-            st.warning("⚠️ Die Tabelle scheint leer zu sein.")
+            st.warning("⚠️ Die Tabelle wurde gefunden, aber sie scheint leer zu sein.")
+            st.info("Hinweis: In Zeile 1 des Google Sheets müssen Überschriften stehen (z.B. Name, Tour).")
             
-    except gspread.exceptions.SpreadsheetNotFound:
-        st.error(f"❌ Tabelle '{TABELLEN_NAME}' wurde nicht gefunden.")
-        st.info("Tipp: Prüfe den Namen oder nutze die ID aus der URL.")
     except Exception as e:
-        st.error(f"❌ Fehler beim Zugriff auf die Tabelle: {e}")
+        st.error(f"Fehler beim Laden der Daten: {e}")
 else:
-    st.warning("⚠️ Warte auf gültige Verbindung... Bitte prüfe die Fehlermeldungen oben.")
+    st.info("Warte auf Verbindung zu Google...")
 
 # Verbindung sofort beim Start aufbauen
 try:
