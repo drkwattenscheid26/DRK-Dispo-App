@@ -6,7 +6,7 @@ import pandas as pd
 st.set_page_config(page_title="DRK Dispo", layout="wide")
 st.title("🚑 DRK Einsatzplanung")
 
-# Funktion für die Verbindung
+# --- FUNKTION --- (Das ist dein Werkzeugkasten)
 def get_data():
     try:
         # 1. Credentials aus Secrets laden
@@ -38,6 +38,18 @@ def get_data():
         st.error(f"❌ Detail-Fehler: {e}")
         return None
 
+# --- HAUPTPROGRAMM --- (Hier wird die Arbeit gemacht)
+# Wir rufen die Funktion von oben auf
+df = get_data()
+
+# Wenn Daten zurückgekommen sind, zeigen wir sie an
+if df is not None:
+    if not df.empty:
+        st.success("✅ Verbindung erfolgreich! Daten geladen.")
+        # Tabelle anzeigen
+        st.dataframe(df, use_container_width=True)
+    else:
+        st.warning("⚠️ Die Tabelle wurde gefunden, ist aber leer.")
 # --- Hauptprogramm ---
 # Hier rufen wir die Funktion auf und speichern das Ergebnis in 'df'
 df = get_data()
